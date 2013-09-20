@@ -1,0 +1,134 @@
+#!/usr/bin/perl 
+use strict;
+
+open F, shift || "timelog.txt" or die $!;
+
+my (%days, %hours);
+my $last_start;
+
+while(my $line = <F>){
+    my ($action, $time) = $line =~ m{(\w+)\t(\d+)};
+    die $line unless $action and $time;
+
+    if($action eq 'START'){
+	$last_start = $time;
+    }
+    elsif($action eq 'END'){
+	endit($last_start, $time);
+	undef $last_start;
+    }
+    else {
+	die "WTF ACTION: >$line<";
+    }
+}
+close(F);
+
+endit($last_start) if $last_start;
+
+print "HOURS:\n";
+foreach my $hour (sort keys %hours){
+    print "$hour\t" . displaytime($hours{$hour}, 1) . "\n";
+}
+
+print "\nDAYS:\n";
+foreach my $day (sort keys %days){
+    print "$day\t" . displaytime($days{$day}) . "\n";
+}
+
+sub displaytime {
+    my $secs = shift;
+    my $hourmode = shift;
+
+    my $ret;
+
+    return 'FULL' if $hourmode and $secs == 3600;
+
+    if($secs > 3600){
+	my $hour = int($secs / 3600);
+	$secs -= $hour*3600;
+	$ret .= "$hour:";
+    }
+
+    if($secs >= 60){
+	my $mins = int($secs / 60);
+	$secs -= $mins*60;
+	$mins = "0$mins" if $mins < 10;
+	$ret .= "$mins:";
+    }
+    else {
+	$ret .= "00:";
+    }
+
+    $secs = "0$secs" if $secs < 10;
+
+    $ret .= $secs;
+    return $ret;
+}
+
+sub endit {
+    my $start = shift;
+    chomp(my $end = shift || `date +%s`);
+
+    my $start_day = dayof($start);
+    my $end_day = dayof($end);
+
+    my @days = ($start_day);
+
+    while($start_day ne $end_day){
+	$start_day = tomorrow($start_day);
+	push @days, $start_day;
+    }
+
+    foreach my $day (@days){
+	chomp(my $day_start_sec = `date +%s -d '$day'`);
+	my $day_end_sec = $day_start_sec + 24 * 3600;
+
+	my $overlap = overlap($start, $end, $day_start_sec, $day_end_sec);
+
+	$days{$day} += $overlap if $overlap;
+
+	foreach my $hour ( "00" .. "23"){
+	    chomp(my $hour_start_sec = `date +%s -d '$day $hour:00:00'`);
+	    my $hour_end_sec = $hour_start_sec + 3600;
+
+	    my $overlap = overlap($start, $end, $hour_start_sec, $hour_end_sec);
+
+	    $hours{"$day $hour"} += $overlap if $overlap;
+	}
+    }
+}
+
+sub overlap {
+    my ($start1, $end1, $start2, $end2) = @_;
+
+    $start1 = $start2 if $start2 > $start1;
+    $end1 = $end2 if $end2 < $end1;
+
+    my $overlap = $end1 > $start1 ? $end1-$start1 : 0;
+
+    return $overlap;
+}
+
+
+sub dayof {
+    my $secs = shift;
+
+    my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime($secs);
+
+    $year += 1900;
+    $mon++;
+    $mon = "0$mon" if $mon < 10;
+    $mday = "0$mday" if $mday < 10;
+    $hour = "0$hour" if $hour < 10;
+
+    my $date = "$year-$mon-$mday";
+
+    return $date;
+}
+
+sub tomorrow {
+    my $today = shift;
+
+    chomp(my $tomorrow = `date +%Y-%m-%d -d '$today tomorrow'`);
+    return $tomorrow;
+}

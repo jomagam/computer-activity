@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+
+use strict;
+
+my $THRESHOLD = 5 * 60 * 1000; # 5 minutes
+
+my $is_active;
+my $last_now;
+
+while(1){
+    chomp(my $idle_time = `xprintidle`);
+    my $now = time;
+
+    $is_active = 0 if $now - $last_now > $THRESHOLD / 1000;
+
+    if($is_active){
+	my $ago = $idle_time / 1000;
+
+# Always log, and we'll remove the last END	
+	logme('END', `date +%s -d '$ago seconds ago'`);
+
+	$is_active = 0 if $idle_time > $THRESHOLD;
+    }
+    else {
+	if($idle_time < $THRESHOLD){
+	    logme('START', $now);
+	    logme('END', $now);
+	    $is_active = 1;
+	}
+    }
+
+    $last_now = $now;
+
+    select undef, undef, undef, 10;
+}
+
+sub logme {
+    my ($action, $time) = @_;
+
+    chomp($time);
+
+    my $file = "timelog.txt";
+
+
+    open F, $file;
+    my @loglines = <F>;
+    close(F);
+
+    my ($lastaction, $lasttime) = split /\t/, $loglines[-1];
+
+    pop @loglines if $lastaction eq $action;
+
+    push @loglines, "$action\t$time\n";
+
+    open F, ">$file.$$" or die $!;
+    print F @loglines;
+    close(F);
+
+    rename "$file.$$", $file;
+}
