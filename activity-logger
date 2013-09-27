@@ -39,7 +39,7 @@ sub logme {
 
     chomp($time);
 
-    my $file = "timelog.txt";
+    my $file = "/var/log/timelog.txt";
 
 
     open F, $file;
