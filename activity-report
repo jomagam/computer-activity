@@ -1,10 +1,20 @@
 #!/usr/bin/perl 
 use strict;
 
+use Getopt::Std;
+
+my %opts;
+
+getopt('a', \%opts);
+
 open F, shift || "/var/log/timelog.txt" or die $!;
 
 my (%days, %hours);
-my $last_start;
+my ($last_start, $start_cutoff);
+
+unless(exists $opts{a}){
+    chomp($start_cutoff = `date +%s -d '0:00'`);
+}
 
 while(my $line = <F>){
     my ($action, $time) = $line =~ m{(\w+)\t(\d+)};
@@ -68,6 +78,8 @@ sub displaytime {
 sub endit {
     my $start = shift;
     chomp(my $end = shift || `date +%s`);
+
+    return if $start < $start_cutoff;
 
     my $start_day = dayof($start);
     my $end_day = dayof($end);
