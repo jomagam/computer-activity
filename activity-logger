@@ -2,14 +2,21 @@
 
 use strict;
 
-my $THRESHOLD = 5 * 60 * 1000; # 5 minutes
+my $THRESHOLD = 60 * 1000; # 1 minute
 
 my $is_active;
 my $last_now;
 
+my $file = "/var/log/timelog.txt";
+my $debugfile = "/var/log/timelog-debug.txt";
+
 while(1){
     chomp(my $idle_time = `xprintidle`);
     my $now = time;
+
+    open F, ">>$debugfile";
+    print F "$now\t$idle_time\n";
+    close(F);
 
     $is_active = 0 if $now - $last_now > $THRESHOLD / 1000;
 
@@ -31,16 +38,13 @@ while(1){
 
     $last_now = $now;
 
-    select undef, undef, undef, 10;
+    select undef, undef, undef, 5;
 }
 
 sub logme {
     my ($action, $time) = @_;
 
     chomp($time);
-
-    my $file = "/var/log/timelog.txt";
-
 
     open F, $file;
     my @loglines = <F>;
