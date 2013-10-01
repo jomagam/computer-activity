@@ -10,10 +10,10 @@ getopt('a', \%opts);
 open F, shift || "/var/log/timelog.txt" or die $!;
 
 my (%days, %hours);
-my ($last_start, $start_cutoff);
+my ($last_start, $cutoff);
 
 unless(exists $opts{a}){
-    chomp($start_cutoff = `date +%s -d '0:00'`);
+    chomp($cutoff = `date +%s -d '0:00'`);
 }
 
 while(my $line = <F>){
@@ -79,7 +79,8 @@ sub endit {
     my $start = shift;
     chomp(my $end = shift || `date +%s`);
 
-    return if $start < $start_cutoff;
+    return if $end < $cutoff;
+    $start = $cutoff if $cutoff > $start;
 
     my $start_day = dayof($start);
     my $end_day = dayof($end);
