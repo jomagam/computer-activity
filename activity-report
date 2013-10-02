@@ -7,7 +7,7 @@ my %opts;
 
 getopt('a', \%opts);
 
-open F, shift || "/var/log/timelog.txt" or die $!;
+open F, shift || "/var/log/timelog/timelog.txt" or die $!;
 
 my (%days, %hours);
 my ($last_start, $cutoff);
