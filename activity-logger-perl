@@ -2,7 +2,7 @@
 
 use strict;
 
-my $THRESHOLD =  5 * 60 * 1000; # 5 minutes
+my $THRESHOLD =  3 * 60 * 1000; # 3 minutes
 
 my $is_active;
 my $last_now;
