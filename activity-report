@@ -5,18 +5,19 @@ use Getopt::Std;
 
 my %opts;
 
-getopts('ad', \%opts);
+getopts('ade', \%opts);
 
 open F, shift || "/var/log/timelog/timelog.txt" or die $!;
 
-my (%days, %hours);
+my (%days, %hours, %end);
 my ($last_start, $cutoff);
 
 unless(exists $opts{a}){
-    chomp($cutoff = `date +%s -d '0:00'`);
+    chomp($cutoff = `date +%s -d 'yesterday 0:00'`);
 }
 
 my $days_only = exists $opts{d};
+my $end_too = exists $opts{e};
 
 while(my $line = <F>){
     my ($action, $time) = $line =~ m{(\w+)\t(\d+)};
@@ -40,7 +41,8 @@ endit($last_start) if $last_start;
 unless($days_only){
     print "HOURS:\n";
     foreach my $hour (sort keys %hours){
-	print "$hour\t" . displaytime($hours{$hour}, 1) . "\n";
+	my $endpart = $end_too ? $end{$hour} : '';
+	print "$hour\t" . displaytime($hours{$hour}, 1) . "\t$endpart\n";
     }
 }
 
@@ -100,7 +102,7 @@ sub endit {
 	chomp(my $day_start_sec = `date +%s -d '$day'`);
 	my $day_end_sec = $day_start_sec + 24 * 3600;
 
-	my $overlap = overlap($start, $end, $day_start_sec, $day_end_sec);
+	my ($overlap, $end) = overlap($start, $end, $day_start_sec, $day_end_sec);
 
 	$days{$day} += $overlap if $overlap;
 
@@ -109,9 +111,11 @@ sub endit {
 		chomp(my $hour_start_sec = `date +%s -d '$day $hour:00:00'`);
 		my $hour_end_sec = $hour_start_sec + 3600;
 
-		my $overlap = overlap($start, $end, $hour_start_sec, $hour_end_sec);
+		my ($overlap, $end) = overlap($start, $end, $hour_start_sec, $hour_end_sec);
 
 		$hours{"$day $hour"} += $overlap if $overlap;
+		$end{"$day $hour"} = ($hour_end_sec-$end)/60;
+
 	    }
 	}
     }
@@ -125,7 +129,7 @@ sub overlap {
 
     my $overlap = $end1 > $start1 ? $end1-$start1 : 0;
 
-    return $overlap;
+    return ($overlap, $end1);
 }
 
 
