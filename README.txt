@@ -3,7 +3,7 @@ These tools help you keep track of how much time you spend in front of the compu
 
 Prerequisites:
 
-xprintidle
+xprintidle # sudo apt-get install xprintidle
 perl
 
 Files:
